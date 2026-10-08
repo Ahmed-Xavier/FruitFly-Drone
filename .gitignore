@@ -38,3 +38,7 @@ Thumbs.db
 outputs/
 results/
 checkpoints/
+
+# Local connectome dataset & compiled caches (large binaries)
+brain/data/
+

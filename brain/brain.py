@@ -52,18 +52,18 @@ DN_NEURONS = {
     # Backward walking (MDN - Moonwalker Descending Neuron)
     "MDN_1":          720575940616026939,
     "MDN_2":          720575940631082808,
-    # Escape / fast takeoff (Giant Fiber)
-    "GF_1":           720575940626081498,
-    "GF_2":           720575940628359487,
+    # Escape / fast takeoff (Giant Fiber / DNp01)
+    "GF_1":           720575940622838154,
+    "GF_2":           720575940632499757,
     # Antennal grooming (aDN1)
     "aDN1_left":      720575940614418659,
     "aDN1_right":     720575940623769165,
     # Proboscis extension / feeding motor neurons (MN9)
     "MN9_left":       720575940639908170,
     "MN9_right":      720575940625695026,
-    # Wing coordination
-    "DNp01_left":     720575940608681123,
-    "DNp01_right":    720575940626388417,
+    # Wing coordination / Giant Fiber (DNp01)
+    "DNp01_left":     720575940622838154,
+    "DNp01_right":    720575940632499757,
 }
 
 DN_GROUPS = {

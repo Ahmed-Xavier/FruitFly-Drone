@@ -23,67 +23,80 @@ FruitFly-Drone/
 │   │   ├── motors.py       # 4-motor quadrotor aerodynamic mixer & limits
 │   │   └── drone.py        # Drone simulation encapsulation
 │   └── body.py             # Top-level Body embodiment abstraction
-├── bridge/                 # Future brain-body interface (specification-only)
-│   ├── README.md           # Interface boundary specifications & deferred mappings
-│   └── __init__.py         # Package initialization
-├── experiments/            # Standalone drone flight experiments
-│   ├── drone_pid_flight.py # Autonomous 3D waypoint mission (cascaded PID)
-│   ├── manual_control.py   # Interactive keyboard flight with live camera HUD
-│   ├── height_stabilization_test.py # Closed-loop altitude PD test
+├── bridge/                 # Brain-body sensory-motor interface layer
+│   ├── sensory_encoder.py  # IMU/velocity -> Johnston's Organ, LC4, HS/VS firing rates
+│   ├── motor_decoder.py    # Descending neuron activity -> motor flight intent
+│   ├── controller.py       # Safety envelopes, attitude PD stabilization, mixer
+│   ├── synchronizer.py     # Multiscale timestep coordinator & telemetry logging
+│   ├── __init__.py         # Package exports
+│   └── README.md           # Interface boundary specifications & biological grounding
+├── experiments/            # Standalone and integrated flight experiments
+│   ├── brain_drone_hover.py    # Closed-loop connectome hover experiment
+│   ├── brain_drone_response.py # Controlled disturbance & recovery experiment
+│   ├── brain_drone_escape.py   # Visual looming threat & escape reflex experiment
+│   ├── drone_pid_flight.py     # Standalone autonomous 3D waypoint mission (PID)
+│   ├── manual_control.py       # Standalone interactive keyboard flight
+│   ├── height_stabilization_test.py # Standalone altitude PD test
 │   └── README.md           # Flight experiments guide
-├── main.py                 # Top-level entry point & architecture verification
+├── main.py                 # Unified application launcher
 ├── requirements.txt        # Python package dependencies
 ├── .gitignore              # Git ignore rules
 └── README.md
 ```
-
-### Module Responsibilities
-
-- **`brain/`** — **FlyWire v783 Fruit-Fly Brain:**
-  Simulates the **FlyWire v783 connectome** (138,639 Leaky Integrate-and-Fire neurons, 15,091,983 directed synapses) with alpha-function conductances, axonal conduction delays ($t_{\text{delay}} = 1.8\text{ ms}$), and online Hebbian plasticity. Completely decoupled from drone mechanics and independently runnable.
-
-- **`body/`** — **MuJoCo Skydio X2:**
-  Owns the physics simulation, XML definitions, 3D assets, rigid-body state, IMU sensors (gyroscope, accelerometer, quaternion), and the 4-rotor actuator mixer. Completely decoupled from neural logic and independently runnable.
-
-- **`bridge/`** — **Future Brain-Body Interface:**
-  Defines the architectural boundary between drone telemetry and neural circuits. Currently **specification-only** and intentionally **not implemented yet**.
-
-- **`experiments/`** — **Standalone Experiments:**
-  Flight scenarios, PID waypoint tracking, altitude stabilization tests, and interactive teleoperation tools for the Skydio X2 quadrotor.
-
-- **`main.py`** — **Top-Level Entry Point:**
-  Initializes and verifies the physical embodiment (`body/`) and optionally the connectome (`brain/`), demonstrating modular readiness without synthetic control bridges.
 
 ---
 
 ## Information Flow Pipeline
 
 ```text
-Drone sensors
-      ↓
-Sensory encoding
-      ↓
-FlyWire brain
-      ↓
-Descending neurons
-      ↓
-Motor decoding
-      ↓
-Skydio X2 actuators
+                MUJOCO DRONE
+                     |
+              +------+------+
+              |             |
+             IMU          Looming / Camera
+              |             |
+              v             v
+       SensoryEncoder (bridge/sensory_encoder.py)
+              |
+              v [Poisson Rates in Hz]
+       FLYWIRE CONNECTOME (brain/brain.py)
+              | [138,639 LIF Neurons · 15M Synapses]
+              |
+              v [Smoothed DN Firing Rates]
+       MotorDecoder (bridge/motor_decoder.py)
+              |
+              v [Normalized Motor Intent: Thrust, Roll, Pitch, Yaw]
+       DroneFlightController (bridge/controller.py)
+              | [Attitude PD, Slew Rate Limiter, Safety Clamping]
+              |
+              v [Actuator Commands: [0.0, 13.0] N]
+          MUJOCO 4-ROTOR ACTUATION
 ```
 
 ### Sensory-Driven Philosophy
 
 The project does **NOT** give the fly high-level commands such as `"fly forward"` or `"turn left"`.
 
-The intended architecture is strictly **sensory-driven**:
-1. The drone provides physical sensory information (accelerations, angular velocities, optic flow / vision).
+The architecture is strictly **sensory-driven**:
+1. The drone provides physical sensory information (accelerations, angular velocities, optic flow / looming).
 2. That information is encoded into neural inputs (synaptic currents, Poisson spike rates).
 3. The biological network processes the activity through the whole-brain recurrent connectome.
-4. Activity from descending neurons (DNs) is decoded into low-level flight control signals (motor thrusts / torques).
+4. Activity from descending neurons (DNs) is decoded into flight control signals (motor thrusts / torques).
 
-> **IMPORTANT:**
-> The actual sensory and motor mappings are **not implemented yet**. They require detailed neurobiological literature grounding, response curve calibration, and empirical investigation, and will not be arbitrarily hardcoded.
+---
+
+## Biological Grounding vs. Engineering Scaffolding
+
+| Component | Biological Grounding | Engineering Scaffolding |
+|---|---|---|
+| **Mechanosensation** | 484 Johnston's Organ (JO) wind & gravity neurons (251 Left / 233 Right) | Linear transfer function mapping m/s and rad/s to Poisson rates |
+| **Visual Looming** | 104 Lobula Columnar type 4 (LC4) neurons projecting to Giant Fiber | Obstacle proximity proxy driving LC4 firing |
+| **Optic Flow** | Horizontal System (HS) and Vertical System (VS) lobula plate cells | Linear rate modulation based on gyro rates |
+| **Motor Drive** | P9 (forward propulsion), DNa01/02 (steering), MDN (braking), GF (escape takeoff) | Normalized $[-1, 1]$ intent mapped to attitude PD setpoints |
+| **Flight Control** | Brain governs motor intent and reactive steering/escape | PD controller & mixer provide aerodynamic stabilization |
+
+> **Scientific Notice:**
+> Direct camera-to-ommatidia pixel ray tracing is `[NOT BIOLOGICALLY VALIDATED]` and is deferred to future work. Visual looming currently drives validated LC4 neural populations.
 
 ---
 
@@ -93,47 +106,55 @@ The intended architecture is strictly **sensory-driven**:
 pip install -r requirements.txt
 ```
 
-*(For GPU acceleration with PyTorch CUDA, ensure a CUDA-enabled PyTorch build matching your hardware is installed).*
+*(Ensure PyTorch with CUDA support is installed for real-time neural simulation).*
 
 ---
 
 ## Running the Project
 
-### 1. Main Entry Point
+### 1. Unified Launcher (`main.py`)
 ```bash
-# Verify drone physics embodiment:
+# Architecture and module verification:
 python main.py
 
-# Verify both Body and Brain (loads 138k connectome):
-python main.py --with-brain
+# Closed-loop brain-controlled drone simulation:
+python main.py --integrated
 
-# Run with interactive 3D viewer:
-python main.py --viewer
+# Closed-loop brain-controlled drone with 3D viewer:
+python main.py --integrated --viewer
+
+# Standalone biological connectome simulation:
+python main.py --brain --stimulus sugar
+
+# Standalone drone physical embodiment:
+python main.py --drone --steps 200
+
+# Autonomous waypoint navigation demo:
+python main.py --flight-demo
 ```
 
-### 2. Standalone Fruit-Fly Brain Connectome
+### 2. Integrated Experiments (`experiments/`)
 ```bash
-# Sugar stimulus (gustatory receptor neurons):
-python brain/run_brain.py --stimulus sugar --steps 200
+# Closed-loop hover experiment:
+python experiments/brain_drone_hover.py
+python experiments/brain_drone_hover.py --viewer
 
-# Visual looming threat (LC4 -> Giant Fiber escape circuit):
-python brain/run_brain.py --stimulus lc4 --steps 200
+# Disturbance recovery experiment:
+python experiments/brain_drone_response.py --disturbance yaw
+python experiments/brain_drone_response.py --disturbance roll
 
-# Forward walking circuit stimulus (P9):
-python brain/run_brain.py --stimulus p9 --steps 200
-
-# Spontaneous activity (no external stimulus):
-python brain/run_brain.py --stimulus none --steps 100
+# Visual looming escape reflex experiment:
+python experiments/brain_drone_escape.py --threat-side center
 ```
 
-### 3. Drone Flight Experiments
+### 3. Standalone Drone Experiments
 ```bash
-# Autonomous 3D waypoint navigation (cascaded PID controller):
+# Autonomous 3D waypoint navigation (cascaded PID):
 python experiments/drone_pid_flight.py
 
-# Manual keyboard flight + live POV camera:
+# Interactive keyboard flight with camera view:
 python experiments/manual_control.py
 
-# Vertical altitude stabilization test:
+# Altitude stabilization test:
 python experiments/height_stabilization_test.py
 ```
