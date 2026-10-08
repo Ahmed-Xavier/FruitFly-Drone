@@ -12,22 +12,35 @@ from typing import Tuple, Dict, Optional
 import pandas as pd
 import torch
 
+import os
+
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 _ORIG_DATA_DIR = Path(__file__).resolve().parent.parent.parent / "fly-brain-full" / "data"
 
 
 def _resolve_data_dir() -> Tuple[Path, Path, Path]:
-    """Find data directory - prefer brain/data/, fall back to fly-brain-full/data/."""
-    for d in (_DATA_DIR, _ORIG_DATA_DIR):
+    """Find data directory - prefer brain/data/, fall back to external connectome caches."""
+    candidates = [_DATA_DIR, _ORIG_DATA_DIR]
+    if "FLYWIRE_DATA_DIR" in os.environ:
+        candidates.insert(0, Path(os.environ["FLYWIRE_DATA_DIR"]))
+    
+    # Also check sibling directories relative to repository root
+    repo_parent = Path(__file__).resolve().parents[3]
+    candidates.append(repo_parent / "fly-brain-full" / "data")
+    candidates.append(repo_parent / "MuJoCo" / "fly-brain-full" / "data")
+
+    for d in candidates:
         comp = d / "2025_Completeness_783.csv"
         conn = d / "2025_Connectivity_783.parquet"
         if comp.exists() and conn.exists():
             return d, comp, conn
+    looked_in = "\n  ".join(str(c) for c in candidates)
     raise FileNotFoundError(
         "Could not find FlyWire connectome data files.\n"
-        f"Looked in:\n  {_DATA_DIR}\n  {_ORIG_DATA_DIR}\n"
+        f"Looked in:\n  {looked_in}\n"
         "Expected: 2025_Completeness_783.csv and 2025_Connectivity_783.parquet"
     )
+
 
 
 def get_hash_tables(comp_path: Path) -> Tuple[Dict[int, int], Dict[int, int]]:
@@ -100,13 +113,19 @@ def get_weights(comp_path: Path, conn_path: Path, cache_dir: Path, csr: bool = T
 
 def load_annotations(data_dir: Optional[Path] = None) -> Optional[pd.DataFrame]:
     """Load FlyWire neuron type annotations (cell_type, super_class, etc.)."""
-    d = Path(data_dir) if data_dir else _DATA_DIR
-    tsv = d / "flywire_annotations.tsv"
-    if not tsv.exists():
-        tsv = _ORIG_DATA_DIR / "flywire_annotations.tsv"
-    if not tsv.exists():
-        return None
-    return pd.read_csv(tsv, sep="\t", low_memory=False)
+    if data_dir is not None:
+        tsv = Path(data_dir) / "flywire_annotations.tsv"
+        if tsv.exists():
+            return pd.read_csv(tsv, sep="\t", low_memory=False)
+    try:
+        resolved_dir, _, _ = _resolve_data_dir()
+        tsv = resolved_dir / "flywire_annotations.tsv"
+        if tsv.exists():
+            return pd.read_csv(tsv, sep="\t", low_memory=False)
+    except FileNotFoundError:
+        pass
+    return None
+
 
 
 def load_connectome(device: str = "cpu", csr: bool = True) -> Tuple[Dict[int, int], Dict[int, int], torch.Tensor, int]:

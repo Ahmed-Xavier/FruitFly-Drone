@@ -1,51 +1,42 @@
 # Bridge: Brain ↔ Body Interface Architecture
 
-> **Status:** Architectural Boundary (Specification Only — Not Implemented Yet)
+> **Status:** Specification Only — Architectural Boundary (Intentionally NOT Implemented Yet)
 
 ---
 
-## Conceptual Pipeline
+## Architectural Boundary Pipeline
 
-The `bridge/` layer will serve as the bidirectional translation interface between the biological/neuromorphic fruit-fly brain connectome (`brain/`) and the physical MuJoCo Skydio X2 quadrotor embodiment (`body/`).
+The `bridge/` module defines the conceptual and architectural boundary between the physical drone embodiment (`body/`) and the biological neural network (`brain/`):
 
 ```text
-       MuJoCo Skydio X2 Drone
-       [IMU, Gyro, Accel, Telemetry]
-                   │
-                   ▼
-         ┌───────────────────┐
-         │  Sensory Encoding │  (Maps physical continuous signals into
-         │ (Body → Neurons)  │   spikes / Poisson rates in Hz)
-         └───────────────────┘
-                   │
-                   ▼
-       Drosophila LIF Connectome
-       [138,639 Neurons · 15M Synapses]
-                   │
-                   ▼
-         ┌───────────────────┐
-         │  Motor Decoding   │  (Decodes descending neuron activity
-         │ (Neurons → Motors)│   into rotor thrusts & flight torques)
-         └───────────────────┘
-                   │
-                   ▼
-       MuJoCo Skydio X2 Actuators
-       [4 Rotors: Thrust, Roll, Pitch, Yaw]
+DRONE SENSORS
+      ↓
+SENSORY ENCODING
+      ↓
+FLYWIRE BRAIN
+      ↓
+DESCENDING NEURON ACTIVITY
+      ↓
+MOTOR DECODING
+      ↓
+DRONE ACTUATORS
 ```
 
 ---
 
-## Explicit Design Boundaries
+## Intentionally Deferred Interfaces
 
-To preserve scientific rigor, the following decisions are deliberately deferred and **NOT implemented yet**:
+To maintain scientific integrity, the sensory and motor bridge mappings are **specification-only** and are **deliberately NOT implemented yet**:
 
-1. **Sensory Channel Allocations:**
-   - Which specific sensory neurons (e.g., Johnston's organ mechanosensory, visual lobula plate tangential cells, haltere-analogous gyroscopic inputs) receive drone accelerometer, angular velocity, and pose telemetry.
-2. **Signal-to-Spike Encoding Functions:**
-   - Mathematical transfer functions converting physical units (rad/s, m/s², m) into Poisson firing rates (Hz) or current injections.
-3. **Descending Neuron (DN) Motor Decoding:**
-   - Which specific descending populations (e.g., P9 forward walk, DNa01/DNa02 steering, MDN backward, Giant Fiber escape) drive quadrotor flight axes (collective thrust, roll torque, pitch torque, yaw torque).
-4. **Timescale & Rate Normalization:**
-   - Handling the rate mismatch between the brain's 10 kHz integration clock ($dt = 0.1\text{ ms}$) and the drone's 100 Hz physical control loop ($dt = 10.0\text{ ms}$).
+1. **Biological sensory neuron / channel selection**: Identifying which specific biological sensory neurons and receptor types (e.g., Johnston's organ mechanoreceptors, lobula plate tangential cells, haltere analogs) should receive drone telemetry (IMU accelerations, angular rates, orientation).
+2. **Sensor-to-neural-rate / spike encoding**: Designing physiologically plausible transfer functions that convert physical SI units into Poisson firing rates or current injection profiles.
+3. **Descending-neuron-to-flight-command decoding**: Mapping activity across descending neurons (e.g., P9, DNa01, DNa02, MDN) into multi-rotor flight control commands (thrust, roll, pitch, yaw).
+4. **Brain / body timestep synchronization**: Synchronizing the temporal disparity between the biological LIF simulation clock (10 kHz, $dt = 0.1\text{ ms}$) and the MuJoCo rigid-body flight physics simulation (100 Hz, $dt = 10.0\text{ ms}$).
+5. **Camera / visual pathway integration**: Projecting drone camera frames or optic flow fields onto the compound eye retinotopic lattice and downstream optic lobe neuropils.
 
-These interfaces will be analyzed and designed systematically after profiling the biological response curves and physical flight envelope.
+---
+
+## Scientific Rigor Notice
+
+> **IMPORTANT:**
+> These neural and motor mappings require empirical scientific investigation, literature grounding, and systematic response-curve profiling. They should **not** be arbitrarily chosen or hardcoded as placeholder heuristics.

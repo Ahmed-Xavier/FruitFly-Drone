@@ -71,17 +71,12 @@ def main():
     else:
         print("\n[2/2] Drosophila Brain module ready (run with --with-brain to instantiate connectome).")
 
-    # 3. Future integration scaffold:
-    # --------------------------------------------------------------------------
-    # bridge = Bridge()
-    # while simulation_running:
-    #     sensors = body.read_sensors()
-    #     neural_input = bridge.encode(sensors)
-    #     brain_output = brain.step(neural_input)
-    #     motor_commands = bridge.decode(brain_output)
-    #     body.set_motor_commands(motor_commands)
-    #     body.step()
-    # --------------------------------------------------------------------------
+    # 3. Brain-body bridge status notice
+    print("\n[Bridge Status]")
+    print("  Sensory-motor bridge is currently specification-only (not connected).")
+    print("  Drone and biological brain models are independently initialized and verified.")
+    print("  No synthetic neural mappings are applied; full integration is intentionally deferred.")
+
 
     # 4. Verify physical simulation stepping
     print(f"\nStepping drone physics ({args.steps} steps)...")
