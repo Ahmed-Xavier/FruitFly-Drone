@@ -1,0 +1,8 @@
+mujoco>=3.0.0
+torch>=2.0.0
+numpy>=1.24.0
+pandas>=2.0.0
+pyarrow>=14.0.0
+scipy>=1.10.0
+simple-pid>=0.2.0
+opencv-python>=4.8.0
