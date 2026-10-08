@@ -55,6 +55,13 @@ All sensory neurons used in the bridge are resolved directly from the **FlyWire 
 * **Neurons Mapped:** Horizontal System (`HS`) and Vertical System (`VS`) neurons.
 * **Biological Grounding:** HS cells respond to wide-field horizontal yaw optic flow; VS cells respond to vertical pitch/roll optic flow (*Borst et al., 2010*).
 
+### D. Visual Target Tracking Pathway (LC10) — Embodied Sugar Tracking
+* **Biological Structure:** Lobula Columnar type 10 (LC10) visual projection neurons.
+* **Neurons Mapped:** **437 LC10a/LC10c neurons** (216 left, 221 right) from a total of 815 LC10 neurons in the connectome.
+* **Biological Grounding:** LC10 neurons specifically mediate visual tracking of, orientation toward, and approach to small salient visual objects in *Drosophila* (*Ribeiro et al., Cell 2018; Hindmarsh Sten et al., Nature 2021*). They project to the Anterior Optic Tubercle (AOTU) and down to descending steering neurons (`DNa01`, `DNa02`) and forward locomotion neurons (`P9`).
+* **Visual Target Encoder:** [`bridge/visual_target_encoder.py`](visual_target_encoder.py) translates camera object detections (`center_x`, `apparent_size`, confidence) into differential bilateral LC10 activation.
+* **Distinction from Contact Taste:** Strictly separated from `STIMULI["sugar"]` (21 labellar `LB3` gustatory receptor neurons that project to the SEZ to control proboscis extension and feeding).
+
 ---
 
 ## 3. Descending Neuron (DN) Motor Decoding

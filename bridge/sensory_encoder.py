@@ -103,6 +103,7 @@ class SensoryEncoder:
         self,
         telemetry: Dict[str, np.ndarray],
         looming_threat: Optional[Dict[str, float]] = None,
+        stimulus_bias: Optional[Dict[str, float]] = None,
     ) -> Dict[str, Any]:
         """
         Encode physical drone state into biological input firing rates.
@@ -153,13 +154,17 @@ class SensoryEncoder:
         yaw_differential = 35.0 * yaw_rate     # +yaw (turn left) increases right antenna pressure
         roll_differential = 20.0 * roll_rate   # +roll (roll right) increases left antenna pressure
 
+        # Stimulus bias (e.g. from keyboard navigation or high-level mission cues)
+        steer_bias = float(stimulus_bias.get("steer", 0.0)) if stimulus_bias else 0.0
+        fwd_bias = float(stimulus_bias.get("forward", 0.0)) if stimulus_bias else 0.0
+
         jo_left_rate = float(np.clip(
-            symmetric_wind_rate - yaw_differential + roll_differential,
+            symmetric_wind_rate - yaw_differential + roll_differential - steer_bias * 45.0,
             0.0,
             self.MAX_FIRING_RATE_HZ,
         ))
         jo_right_rate = float(np.clip(
-            symmetric_wind_rate + yaw_differential - roll_differential,
+            symmetric_wind_rate + yaw_differential - roll_differential + steer_bias * 45.0,
             0.0,
             self.MAX_FIRING_RATE_HZ,
         ))
@@ -168,6 +173,14 @@ class SensoryEncoder:
             rates[nid] = jo_left_rate
         for nid in self.jo_right_ids:
             rates[nid] = jo_right_rate
+
+        # Forward drive injection into P9 forward locomotion neurons if commanded
+        if fwd_bias > 0.0:
+            p9_rate = float(np.clip(fwd_bias * 120.0, 0.0, self.MAX_FIRING_RATE_HZ))
+            p9_ids = STIMULI.get("p9", {}).get("neurons", [])
+            for pid in p9_ids:
+                rates[pid] = max(rates.get(pid, 0.0), p9_rate)
+
 
         # ── 2. Optic Flow (Horizontal & Vertical System Lobula Plate Cells) ────
         # BIOLOGICALLY GROUNDED: HS cells respond to horizontal visual yaw rotation;

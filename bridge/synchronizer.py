@@ -23,8 +23,10 @@ import numpy as np
 from body.body import Body
 from brain.brain import FlyBrain, Brain
 from bridge.sensory_encoder import SensoryEncoder
+from bridge.visual_target_encoder import VisualTargetEncoder
 from bridge.motor_decoder import MotorDecoder
 from bridge.controller import DroneFlightController
+from object_detection.detector import TargetDetection
 
 
 @dataclass
@@ -52,6 +54,8 @@ class BridgeTelemetry:
     flight_axes: Dict[str, float]
     safety_triggered: bool
     safety_reason: str
+    target_summary: Optional[Dict[str, Any]] = None
+
 
 
 class BrainDroneSynchronizer:
@@ -91,6 +95,7 @@ class BrainDroneSynchronizer:
 
         # Bridge subsystems
         self.encoder = SensoryEncoder(use_full_populations=True)
+        self.target_encoder = VisualTargetEncoder()
         self.decoder = MotorDecoder()
         self.controller = DroneFlightController(target_alt=target_alt)
 
@@ -111,6 +116,8 @@ class BrainDroneSynchronizer:
         self,
         looming_threat: Optional[Dict[str, float]] = None,
         external_force: Optional[np.ndarray] = None,
+        stimulus_bias: Optional[Dict[str, float]] = None,
+        target_detection: Optional[TargetDetection] = None,
     ) -> BridgeTelemetry:
         """
         Execute one complete synchronized cycle.
@@ -121,6 +128,10 @@ class BrainDroneSynchronizer:
             Simulated visual collision threat for LC4 visual pathway.
         external_force : np.ndarray, optional
             Optional force perturbation applied to drone body for disturbance testing.
+        stimulus_bias : dict, optional
+            Optional forward/steering biases (e.g. from keyboard navigation or mission cues).
+        target_detection : TargetDetection, optional
+            Visual object detection output for LC10 target-tracking pathway.
 
         Returns
         -------
@@ -130,9 +141,20 @@ class BrainDroneSynchronizer:
         sensors = self.body.read_sensors()
 
         # ── 2. Encode continuous telemetry into biological firing rates ───────
-        encoded = self.encoder.encode(sensors, looming_threat=looming_threat)
+        encoded = self.encoder.encode(
+            sensors,
+            looming_threat=looming_threat,
+            stimulus_bias=stimulus_bias,
+        )
         rates_dict = encoded["rates"]
         sensory_summary = encoded["encoded_summary"]
+
+        # ── 2b. Encode visual target detection into LC10 pathways ────────────
+        target_summary = None
+        if target_detection is not None:
+            target_encoded = self.target_encoder.encode(target_detection)
+            rates_dict.update(target_encoded["rates"])
+            target_summary = target_encoded["summary"]
 
         # ── 3. Step FlyWire brain N times with encoded input ──────────────────
         total_spikes = 0
@@ -190,6 +212,7 @@ class BrainDroneSynchronizer:
             flight_axes=ctrl_out["flight_axes"],
             safety_triggered=ctrl_out["safety_triggered"],
             safety_reason=ctrl_out["safety_reason"],
+            target_summary=target_summary,
         )
 
         return snapshot

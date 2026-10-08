@@ -16,12 +16,14 @@ Architecture:
 """
 
 from .sensory_encoder import SensoryEncoder
+from .visual_target_encoder import VisualTargetEncoder
 from .motor_decoder import MotorDecoder
 from .controller import DroneFlightController
 from .synchronizer import BrainDroneSynchronizer, BridgeTelemetry
 
 __all__ = [
     "SensoryEncoder",
+    "VisualTargetEncoder",
     "MotorDecoder",
     "DroneFlightController",
     "BrainDroneSynchronizer",
